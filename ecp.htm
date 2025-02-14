@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>
+            N-Körper-Problem
+        </title>
+        <style>
+            html {
+                background: #202020;
+                color: #dbdbdb;
+            }
+            canvas {
+                background: #101010;
+                border: 1px solid #dbdbdb;
+            }
+        </style>
+        <script>
+            const MARGIN_X = 20;
+            const MARGIN_Y = 120;
+            const G = 6.674e-11; // Gravitationskonstante
+            const AE = 149597870700; // Astronomische Einheit in Meter
+            const dt = 360; // Δt (Integrationsschrittweite ~6d pro Sekunde bei 143 Hz, ~1min pro Erdumlauf)
+
+            class CelestialBody {
+                constructor(name, m, r, c = "#ffffff", bary = null, a = null, e = null) {
+                    this._name = name; // Name
+                    this._m = m; // Masse
+                    this._r = r; // Radius (nur zur Anzeige)
+                    this._c = c; // Farbe (nur zur Anzeige)
+                    this._bary = bary; // Bezugskörper (oder null für Sonne)
+                    this._a = a; // große Halbachse der Umlaufbahn (oder null für Sonne)
+                    this._e = e; // Exzentrizität des Bahnkurve (oder null für Sonne)
+                }
+                get m() { return this._m; }
+                get pos() { return {
+                    x: this._bary == null ? 0 : this._bary.pos.x + this._a * (1 + this._e), // initiale Position im Aphel
+                    y: this._bary == null ? 0 : this._bary.pos.y
+                }; }
+                get vel() { return {
+                    x: this._bary == null ? 0 : this._bary.vel.x,
+                    y: this._bary == null ? 0 : this._bary.vel.y + Math.sqrt(G * (this._bary.m + this._m) * ((2 / (this._a * (1 + this._e))) - (1 / this._a))) // initiale Geschwindigkeit im Aphel
+                }; }
+                get init() { return {
+                    name: this._name,
+                    pos: this.pos,
+                    vel: this.vel,
+                    m: this._m,
+                    r: this._r,
+                    c: this._c
+                }; }
+            }
+
+            const c_sun      = new CelestialBody("Sonne",    1.989e+30,  6.963e+8, "#ffbf00");
+            const c_mercury  = new CelestialBody("Merkur",   3.301e+23,  2.439e+6, "#666666", c_sun,  0.387098 * AE, 0.2056);
+            const c_venus    = new CelestialBody("Venus",    4.867e+24,  6.051e+6, "#f0b27a", c_sun,    0.7233 * AE, 0.0068);
+            const c_earth    = new CelestialBody("Erde",     5.972e+24,  6.378e+6, "#004ac8", c_sun,         1 * AE, 0.0167);
+            const c_moon     = new CelestialBody("Mond",     7.346e+22,  1.737e+6, "#808b96", c_earth,    384400000, 0.0549);
+            const c_mars     = new CelestialBody("Mars",     6.417e+23,  3.389e+6, "#d35400", c_sun,     1.524 * AE, 0.0934);
+            const c_phobos   = new CelestialBody("Phobos",   1.072e+16,     11100, "#ffffff", c_mars,       9378000, 0.0151);
+            const c_deimos   = new CelestialBody("Deimos",     1.8e+15,      6200, "#ffffff", c_mars,      23459000, 0.00033);
+            const c_jupiter  = new CelestialBody("Jupiter",  1.898e+27, 69.911e+6, "#edbb99", c_sun,     5.204 * AE, 0.0489);
+            const c_io       = new CelestialBody("Io",         8.9e+22,  1.821e+6, "#d3c500", c_jupiter,  421800000, 0.004);
+            const c_europa   = new CelestialBody("Europa",     4.8e+22,  1.560e+6, "#8ff50f", c_jupiter,  671100000, 0.009);
+            const c_ganymed  = new CelestialBody("Ganymed",    1.5e+23,  2.631e+6, "#9db1b3", c_jupiter, 1070400000, 0.001);
+            const c_callisto = new CelestialBody("Kallisto",   1.1e+23,  2.410e+6, "#465d5f", c_jupiter, 1882700000, 0.007);
+            const c_saturn   = new CelestialBody("Saturn",   5.683e+26, 58.232e+6, "#f6ddcc", c_sun,     9.582 * AE, 0.0542);
+            const c_titan    = new CelestialBody("Titan",    1.345e+23,  2.574e+6, "#f1cf84", c_saturn,  1221830000, 0.0292);
+            const c_uranus   = new CelestialBody("Uranus",   8.681e+25, 25.362e+6, "#d5d8dc", c_sun,    19.201 * AE, 0.0472);
+            const c_neptune  = new CelestialBody("Neptun",   1.024e+26, 24.622e+6, "#5dade2", c_sun,    30.178 * AE, 0.0097);
+            const c_pluto    = new CelestialBody("Pluto",      1.3e+22,  1.188e+6, "#ffffff", c_sun,    39.482 * AE, 0.2488);
+
+            var obx = [
+                c_sun.init,
+                c_mercury.init, c_venus.init, c_earth.init, c_moon.init, c_mars.init, c_phobos.init, c_deimos.init,
+                c_jupiter.init, c_io.init, c_europa.init, c_ganymed.init, c_callisto.init, c_saturn.init, c_titan.init, c_uranus.init, c_neptune.init, c_pluto.init
+            ]
+        </script>
+    </head>
+    <body>
+        <p><a href="https://de.wikipedia.org/wiki/N-K%C3%B6rper-Problem">N-Körper-Problem</a> FPS: <span id="fps"></span> <select id="follow"><option value="-1">&lt;FreeCam&gt;</option></select> Extended Grid: <input id="extended_grid" type="checkbox"/> Radius Skalierung: <input type="range" min="1" max="90" value="1" id="radius_scale"/></p>
+        <canvas id="simulation"></canvas>
+        <script>
+            for(let i = 0; i < obx.length; i++) {
+                document.getElementById("follow").innerHTML += "<option value='" + i + "'>" + obx[i].name + "</option>";
+            }
+
+            var canvas = document.getElementById("simulation");
+            var ctx = canvas.getContext("2d");
+
+            // canvas state variables
+            let pan_x = 0;
+            let pan_y = 0;
+            let is_dragging = false;
+            let mouse_x = 0;
+            let mouse_y = 0;
+            let zoom = 0.1;
+            let sim_scale = 1;
+            let follow_object = -1;
+            let extended_grid = false;
+            let radius_scale = 1;
+
+            function update_canvas() {
+                canvas.width = window.innerWidth - MARGIN_X;
+                canvas.height = window.innerHeight - MARGIN_Y;
+                sim_scale = Math.min(canvas.width, canvas.height) / (zoom * AE);
+            }
+            update_canvas();
+
+            // canvas movement
+            canvas.addEventListener("mousedown", (e) => {
+                is_dragging = true;
+                mouse_x = e.clientX;
+                mouse_y = e.clientY;
+            });
+            canvas.addEventListener("mouseup", () => {
+                is_dragging = false;
+            });
+            canvas.addEventListener("mouseleave", () => {
+                is_dragging = false;
+            });
+            canvas.addEventListener("mousemove", (e) => {
+                if(follow_object == -1 && is_dragging) {
+                    pan_x += (e.clientX - mouse_x) / sim_scale;
+                    pan_y += (e.clientY - mouse_y) / sim_scale;
+                    mouse_x = e.clientX;
+                    mouse_y = e.clientY;
+                }
+            });
+            canvas.addEventListener("wheel", (e) => {
+                zoom *= (Math.sign(e.deltaY) < 0 ? 0.9 : 1.1);
+                if(zoom < 0.001) {
+                    zoom = 0.001;
+                }
+                update_canvas();
+            });
+            window.addEventListener("resize", update_canvas);
+            document.getElementById("follow").addEventListener("change", () => {
+                follow_object = Number(document.getElementById("follow").value);
+            });
+            document.getElementById("extended_grid").addEventListener("click", () => {
+                extended_grid = document.getElementById("extended_grid").checked;
+            });
+            document.getElementById("radius_scale").addEventListener("change", () => {
+                radius_scale = Number(document.getElementById("radius_scale").value);
+            });
+
+            // coordinate translation
+            function cX(p) {
+                return (canvas.width / 2) + (p.x + pan_x) * sim_scale;
+            }
+            function cY(p) {
+                return (canvas.height / 2) - (p.y - pan_y) * sim_scale;
+            }
+
+            // functions
+            function drawPlanet(planet) {
+                ctx.fillStyle = planet.c;
+                ctx.beginPath();
+                ctx.arc(cX(planet.pos), cY(planet.pos), sim_scale * planet.r * radius_scale, 0, 2 * Math.PI);
+                ctx.closePath();
+                ctx.fill();
+            }
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // draw coordinate axes
+                ctx.strokeStyle = "#202020";
+                ctx.beginPath();
+                if(extended_grid) {
+                    for(let i = -50; i <= 50; i++) {
+                        ctx.moveTo(cX({x: 50 * AE}), cY({y: i * AE}));
+                        ctx.lineTo(cX({x: -50 * AE}), cY({y: i * AE}));
+                        ctx.moveTo(cX({x: i * AE}), cY({y: 50 * AE}));
+                        ctx.lineTo(cX({x: i * AE}), cY({y: -50 * AE}));
+                    }
+                } else {
+                    ctx.moveTo(cX({x: 50 * AE}), cY({y: 0}));
+                    ctx.lineTo(cX({x: -50 * AE}), cY({y: 0}));
+                    ctx.moveTo(cX({x: 0}), cY({y: 50 * AE}));
+                    ctx.lineTo(cX({x: 0}), cY({y: -50 * AE}));
+                }
+                ctx.stroke();
+
+                // draw celestial objects
+                for(let i = 0; i < obx.length; i++) {
+                    drawPlanet(obx[i]);
+
+                    // adjust panning when following object
+                    if(i == follow_object) {
+                        pan_x = -obx[i].pos.x;
+                        pan_y = obx[i].pos.y;
+                    }
+                }
+            }
+            function simulate() {
+                for(let i = 0; i < obx.length; i++) {
+                    var acc_x = 0;
+                    var acc_y = 0;
+                    for(let j = 0; j < obx.length; j++) {
+                        if(i != j) {
+                            let dx = obx[j].pos.x - obx[i].pos.x;
+                            let dy = obx[j].pos.y - obx[i].pos.y;
+                            let r = Math.sqrt(dx * dx + dy * dy);
+                            let r3 = r * r * r;
+
+                            acc_x += (G * obx[j].m * dx) / r3;
+                            acc_y += (G * obx[j].m * dy) / r3;
+                        }
+                    }
+                    obx[i].vel.x += acc_x * dt;
+                    obx[i].vel.y += acc_y * dt;
+                }
+                for(let i = 0; i < obx.length; i++) {
+                    obx[i].pos.x += obx[i].vel.x * dt;
+                    obx[i].pos.y += obx[i].vel.y * dt;
+                }
+                
+                // TODO: bezeichnungen anzeigen
+                // TODO: Parameterisierung: Integrationsschrittweite/Integrationsschritte pro Frame (subsamples), Anzeige für simulierte Zeitdauer
+                // TODO: substepping? https://youtu.be/oPuSvdBGrpE?si=hOC_rFj38g3Vj26y&t=684
+            }
+
+            // main animation loop
+            timestamp0 = new Date();
+            function update() {
+                simulate();
+                draw();
+                timestamp1 = new Date();
+                document.getElementById("fps").innerHTML = Math.round(1000 / (timestamp1 - timestamp0));
+                timestamp0 = timestamp1;
+                requestAnimationFrame(update);
+            }
+            update();
+        </script>
+    </body>
+</html>
