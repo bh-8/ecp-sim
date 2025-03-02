@@ -9,10 +9,14 @@
                 background: #202020;
                 color: #dbdbdb;
                 font-family: sans-serif;
+                overflow: hidden;
             }
             canvas {
                 background: #101010;
                 border: 1px solid #dbdbdb;
+            }
+            hr {
+                margin: 5px;
             }
             h1 {
                 margin: 0;
@@ -29,11 +33,8 @@
             table {
                 border-collapse: collapse;
                 margin: auto;
-                margin-top: 10px;
-                margin-bottom: 10px;
-            }
-            table th {
-                min-width: 240px;
+                margin-top: 5px;
+                margin-bottom: 5px;
             }
             table td {
                 text-align: center;
@@ -42,20 +43,28 @@
                 color: #ffffff;
                 text-decoration: none;
             }
+            input {
+                margin: 0;
+                margin-left: 5px;
+                margin-right: 5px;
+            }
+            input#sim_steps {
+                height: 10px;
+            }
         </style>
         <script>
             const MARGIN_X = 20;
             const MARGIN_Y = 150;
             const G = 6.674e-11; // Gravitationskonstante
             const AE = 149597870700; // Astronomische Einheit in Meter
-            const dt = 180; // Δt (Integrationsschrittweite in s, 180 = 3min)
 
             class CelestialBody {
-                constructor(name, m, r, c = "#ffffff", b = null, a = null, e = null) {
+                constructor(name, m, r, c = "#dbdbdb", i = null, b = null, a = null, e = null) {
                     this._name = name; // Name
                     this._m = m; // Masse
                     this._r = r; // Radius (nur zur Anzeige)
                     this._c = c; // Farbe (nur zur Anzeige)
+                    this._i = i; // Bildpfad (nur zur Anzeige)
                     this._b = b; // Bezugskörper (oder null für Sonne)
                     this._a = a; // große Halbachse der Umlaufbahn (oder null für Sonne)
                     this._e = e; // Exzentrizität des Bahnkurve (oder null für Sonne)
@@ -69,40 +78,61 @@
                     x: this._b == null ? 0 : this._b.vel.x,
                     y: this._b == null ? 0 : this._b.vel.y + Math.sqrt(G * (this._b.m + this._m) * ((2 / (this._a * (1 + this._e))) - (1 / this._a))) // initiale Geschwindigkeit im Aphel
                 }; }
-                get init() { return {
-                    name: this._name,
-                    pos: this.pos,
-                    vel: this.vel,
-                    m: this._m,
-                    r: this._r,
-                    c: this._c,
-                    is_moon: !(this._b == null || this._b.init.name === "Sonne")
-                }; }
+                get init() {
+                    return {
+                        name: this._name,
+                        pos: this.pos,
+                        vel: this.vel,
+                        m: this._m,
+                        r: this._r,
+                        c: this._c,
+                        i: this._i,
+                        is_moon: !(this._b == null || this._b.init.name === "Sonne")
+                    };
+                }
             }
 
-            const c_sun      = new CelestialBody("Sonne",    1.989e+30,  6.963e+8, "#ffbf00");
-            const c_mercury  = new CelestialBody("Merkur",   3.301e+23,  2.439e+6, "#666666", c_sun,  0.387098 * AE, 0.2056);
-            const c_venus    = new CelestialBody("Venus",    4.867e+24,  6.051e+6, "#f0b27a", c_sun,    0.7233 * AE, 0.0068);
-            const c_earth    = new CelestialBody("Erde",     5.972e+24,  6.378e+6, "#004ac8", c_sun,         1 * AE, 0.0167);
-            const c_moon     = new CelestialBody("Mond",     7.346e+22,  1.737e+6, "#808b96", c_earth,    384400000, 0.0549);
-            const c_mars     = new CelestialBody("Mars",     6.417e+23,  3.389e+6, "#d35400", c_sun,     1.524 * AE, 0.0934);
-            const c_phobos   = new CelestialBody("Phobos",   1.072e+16,     11100, "#ffffff", c_mars,       9378000, 0.0151);
-            const c_deimos   = new CelestialBody("Deimos",     1.8e+15,      6200, "#ffffff", c_mars,      23459000, 0.00033);
-            const c_jupiter  = new CelestialBody("Jupiter",  1.898e+27, 69.911e+6, "#edbb99", c_sun,     5.204 * AE, 0.0489);
-            const c_io       = new CelestialBody("Io",         8.9e+22,  1.821e+6, "#d3c500", c_jupiter,  421800000, 0.004);
-            const c_europa   = new CelestialBody("Europa",     4.8e+22,  1.560e+6, "#8ff50f", c_jupiter,  671100000, 0.009);
-            const c_ganymed  = new CelestialBody("Ganymed",    1.5e+23,  2.631e+6, "#9db1b3", c_jupiter, 1070400000, 0.001);
-            const c_callisto = new CelestialBody("Kallisto",   1.1e+23,  2.410e+6, "#465d5f", c_jupiter, 1882700000, 0.007);
-            const c_saturn   = new CelestialBody("Saturn",   5.683e+26, 58.232e+6, "#f6ddcc", c_sun,     9.582 * AE, 0.0542);
-            const c_titan    = new CelestialBody("Titan",    1.345e+23,  2.574e+6, "#f1cf84", c_saturn,  1221830000, 0.0292);
-            const c_uranus   = new CelestialBody("Uranus",   8.681e+25, 25.362e+6, "#d5d8dc", c_sun,    19.201 * AE, 0.0472);
-            const c_neptune  = new CelestialBody("Neptun",   1.024e+26, 24.622e+6, "#5dade2", c_sun,    30.178 * AE, 0.0097);
-            const c_pluto    = new CelestialBody("Pluto",      1.3e+22,  1.188e+6, "#ffffff", c_sun,    39.482 * AE, 0.2488);
+            const c_sun      = new CelestialBody("Sonne",   1.989e+30,  6.963e+8, "#fcbe00", "image_sun");
+            const c_mercury  = new CelestialBody("Merkur",  3.301e+23,  2.439e+6, "#d8d7ba", "image_mercury", c_sun,  0.387098 * AE, 0.2056);
+            const c_venus    = new CelestialBody("Venus",   4.867e+24,  6.051e+6, "#bd484d", "image_venus",   c_sun,    0.7233 * AE, 0.0068);
+            const c_earth    = new CelestialBody("Erde",    5.972e+24,  6.378e+6, "#5ab7ce", "image_earth",   c_sun,         1 * AE, 0.0167);
+            const c_moon     = new CelestialBody("Mond",    7.346e+22,  1.737e+6, "#a3aaa0", "image_moon",    c_earth,    384400000, 0.0549);
+            const c_mars     = new CelestialBody("Mars",    6.417e+23,  3.389e+6, "#b34f33", "image_mars",    c_sun,     1.524 * AE, 0.0934);
+            const c_phobos   = new CelestialBody("Phobos",  1.072e+16,     11100, "#ffffff", null,            c_mars,       9378000, 0.0151);
+            const c_deimos   = new CelestialBody("Deimos",    1.8e+15,      6200, "#ffffff", null,            c_mars,      23459000, 0.00033);
+            const c_jupiter  = new CelestialBody("Jupiter", 1.898e+27, 69.911e+6, "#dcb47c", "image_jupiter", c_sun,     5.204 * AE, 0.0489);
+            const c_io       = new CelestialBody("Io",        8.9e+22,  1.821e+6, "#8f651b", null,            c_jupiter,  421800000, 0.004);
+            const c_europa   = new CelestialBody("Europa",    4.8e+22,  1.560e+6, "#394969", null,            c_jupiter,  671100000, 0.009);
+            const c_ganymed  = new CelestialBody("Ganymed",   1.5e+23,  2.631e+6, "#877878", null,            c_jupiter, 1070400000, 0.001);
+            const c_callisto = new CelestialBody("Kallisto",  1.1e+23,  2.410e+6, "#6c5547", null,            c_jupiter, 1882700000, 0.007);
+            const c_saturn   = new CelestialBody("Saturn",  5.683e+26, 58.232e+6, "#deab59", "image_saturn",  c_sun,     9.582 * AE, 0.0542);
+            const c_tethys   = new CelestialBody("Tethys",   6.18e+20,    531000, "#ffffff", null,            c_saturn,   294672000, 0.0001);
+            const c_dione    = new CelestialBody("Dione",    1.10e+21,    561000, "#ffffff", null,            c_saturn,   377420000, 0.0022);
+            const c_rhea     = new CelestialBody("Rhea",     2.31e+21,    764000, "#ffffff", null,            c_saturn,   527040000, 0.001);
+            const c_titan    = new CelestialBody("Titan",   1.345e+23,  2.574e+6, "#615f4a", null,            c_saturn,  1221830000, 0.0292);
+            const c_uranus   = new CelestialBody("Uranus",  8.681e+25, 25.362e+6, "#63bad6", "image_uranus",  c_sun,    19.201 * AE, 0.0472);
+            const c_ariel    = new CelestialBody("Ariel",   1.295e+21,    579000, "#ffffff", null,            c_uranus,   190900000, 0.0012);
+            const c_umbriel  = new CelestialBody("Umbriel", 1.221e+21,    585000, "#ffffff", null,            c_uranus,   266000000, 0.0039);
+            const c_titania  = new CelestialBody("Titania", 3.419e+21,    788000, "#644a39", null,            c_uranus,   436300000, 0.0011);
+            const c_oberon   = new CelestialBody("Oberon",  2.883e+21,    761000, "#7f6f72", null,            c_uranus,   583500000, 0.0014);
+            const c_neptune  = new CelestialBody("Neptun",  1.024e+26, 24.622e+6, "#4d78ac", "image_neptune", c_sun,    30.178 * AE, 0.0097);
+            const c_triton   = new CelestialBody("Triton",  2.139e+22,   1353000, "#48302d", null,            c_neptune,  354759000, 0.000016);
+            const c_pluto    = new CelestialBody("Pluto",     1.3e+22,  1.188e+6, "#be762c", "image_pluto",   c_sun,    39.482 * AE, 0.2488);
+            const c_eris     = new CelestialBody("Eris",     1.67e+22,  1.163e+6, "#697688", null,            c_sun,    67.740 * AE, 0.436);
+            const c_haumea   = new CelestialBody("Haumea",   4.01e+21,    816000, "#833c3b", null,            c_sun,    43.287 * AE, 0.192);
+            const c_gonggong = new CelestialBody("Gonggong", 1.75e+21,    615000, "#be7a74", null,            c_sun,    67.376 * AE, 0.503);
+            const c_makemake = new CelestialBody("Makemake",  3.1e+21,    715000, "#a57a6c", null,            c_sun,     45.28 * AE, 0.1654);
+            const c_quaoar   = new CelestialBody("Quaoar",    1.4e+21,    555000, "#3d445f", null,            c_sun,    43.472 * AE, 0.041);
+            const c_sedna    = new CelestialBody("Sedna",       1e+21,    500000, "#b8a19f", null,            c_sun,   541.632 * AE, 0.859);
 
             var obx = [
                 c_sun.init,
                 c_mercury.init, c_venus.init, c_earth.init, c_moon.init, c_mars.init, c_phobos.init, c_deimos.init,
-                c_jupiter.init, c_io.init, c_europa.init, c_ganymed.init, c_callisto.init, c_saturn.init, c_titan.init, c_uranus.init, c_neptune.init, c_pluto.init
+                c_jupiter.init, c_io.init, c_europa.init, c_ganymed.init, c_callisto.init,
+                c_saturn.init, c_tethys.init, c_dione.init, c_rhea.init, c_titan.init,
+                c_uranus.init, c_ariel.init, c_umbriel.init, c_titania.init, c_oberon.init,
+                c_neptune.init, c_triton.init,
+                c_pluto.init, c_eris.init, c_haumea.init, c_gonggong.init, c_makemake.init, c_quaoar.init, c_sedna.init
             ]
         </script>
     </head>
@@ -111,31 +141,75 @@
             Simulation des <a href="https://de.wikipedia.org/wiki/N-K%C3%B6rper-Problem">N-Körper-Problems</a>
         </h1>
         <h2>
-            <b>Abschlussprojekt</b> für die Veranstaltung <q><b>Einführung in die Computerphysik</b></q> &#x2022; Bernhard Hagen Birnbaum
+            <b>Abschlussprojekt</b> &#x2022; <q>Einführung in die Computerphysik</q> &#x2022; <i>Bernhard Hagen Birnbaum</i>
         </h2>
+        <hr/>
         <table>
             <tr>
-                <th>Simulationszeit</th>
-                <th>Simulationsschritte pro Frame</th>
-                <th>Objekt verfolgen</th>
-                <!--<th>Planetenradius</th>-->
-                <th>Labels</th>
-                <th>Gitter anzeigen</th>
+                <th width="175px">Objekt fokussieren</th>
+                <th width="300px">Simulationsschritte pro Frame</th>
+                <th width="300px">Simulationszeit</th>
+                <th width="125px">Sonne</th>
+                <th width="125px">Simulation</th>
+                <th width="75px">Labels</th>
+                <th width="75px">Bilder</th>
+                <th width="75px">AE-Gitter</th>
             </tr>
             <tr>
-                <td><span id="simulated_time"></span></td>
-                <td><input type="range" min="1" max="1000" value="1" id="sim_steps"/></td>
-                <td><select id="follow"><option value="-1">&lt;FreeCam&gt;</option></select></td>
-                <!--<td><input type="range" min="1" max="90" value="1" id="radius_scale"/></td>-->
-                <td><input id="display_labels" type="checkbox" checked/></td>
-                <td><input id="extended_grid" type="checkbox"/></td>
+                <td>
+                    <select id="follow">
+                        <option value="-1">&lt;FreeCam&gt;</option>
+                    </select>
+                </td>
+                <td>
+                    <select id="sim_step_width"></select>
+                    <input type="range" min="1" max="1000" value="1" id="sim_steps"/>
+                    <input id="sim_steps_x3" type="checkbox"/>x3
+                </td>
+                <td>
+                    <span id="simulated_time"></span>
+                </td>
+                <td>
+                    <input id="reset_sun" type="button" value="Zurücksetzen"/>
+                </td>
+                <td>
+                    <input id="reset_sim" type="button" value="Zurücksetzen"/>
+                </td>
+                <td>
+                    <input id="display_labels" type="checkbox" checked/>
+                </td>
+                <td>
+                    <input id="use_images" type="checkbox" checked/>
+                </td>
+                <td>
+                    <input id="extended_grid" type="checkbox"/>
+                </td>
             </tr>
         </table>
         <canvas id="simulation"></canvas>
+        <img id="image_sun" src="icons/sun.png" hidden/>
+        <img id="image_mercury" src="icons/1715798_planet_space_mercury.png" hidden/>
+        <img id="image_venus" src="icons/1715802_space_venus_planet.png" hidden/>
+        <img id="image_earth" src="icons/1715795_planet_earth_space.png" hidden/>
+        <img id="image_moon" src="icons/1715799_space_moon_planet.png" hidden/>
+        <img id="image_mars" src="icons/1715796_planet_mars_space.png" hidden/>
+        <img id="image_jupiter" src="icons/1715797_jupiter_space_planet.png" hidden/>
+        <img id="image_saturn" src="icons/1715801_planet_saturn_space.png" hidden/>
+        <img id="image_uranus" src="icons/1715803_planet_uranus_space.png" hidden/>
+        <img id="image_neptune" src="icons/1715800_planet_neptune_space.png" hidden/>
+        <img id="image_pluto" src="icons/1715804_space_pluto_planet.png" hidden/>
         <script>
             for(let i = 0; i < obx.length; i++) {
                 document.getElementById("follow").innerHTML += "<option value='" + i + "'>" + (obx[i].is_moon ? "&nbsp;&nbsp;&nbsp;&nbsp;" : "") + obx[i].name + "</option>";
             }
+            document.getElementById("sim_step_width").innerHTML += "<option value='1'>1min</option>";
+            document.getElementById("sim_step_width").innerHTML += "<option selected value='3'>3min</option>";
+            document.getElementById("sim_step_width").innerHTML += "<option value='5'>5min</option>";
+            document.getElementById("sim_step_width").innerHTML += "<option value='10'>10min</option>";
+            document.getElementById("sim_step_width").innerHTML += "<option value='20'>20min</option>";
+            document.getElementById("sim_step_width").innerHTML += "<option value='30'>30min</option>";
+            document.getElementById("sim_step_width").innerHTML += "<option value='60'>60min</option>";
+            
 
             var canvas = document.getElementById("simulation");
             var ctx = canvas.getContext("2d");
@@ -151,9 +225,10 @@
 
             let sim_steps = 1;
             let follow_object = -1;
-            let radius_scale = 1;
             let display_labels = true;
+            let use_images = true;
             let extended_grid = false;
+            let dt = 3 * 60;
 
             function update_canvas() {
                 canvas.width = window.innerWidth - MARGIN_X;
@@ -193,17 +268,43 @@
             document.getElementById("follow").addEventListener("change", () => {
                 follow_object = Number(document.getElementById("follow").value);
             });
+            document.getElementById("sim_step_width").addEventListener("change", () => {
+                dt = Number(document.getElementById("sim_step_width").value) * 60;
+            });
             document.getElementById("display_labels").addEventListener("click", () => {
                 display_labels = document.getElementById("display_labels").checked;
+            });
+            document.getElementById("use_images").addEventListener("click", () => {
+                use_images = document.getElementById("use_images").checked;
             });
             document.getElementById("extended_grid").addEventListener("click", () => {
                 extended_grid = document.getElementById("extended_grid").checked;
             });
-            //document.getElementById("radius_scale").addEventListener("change", () => {
-            //    radius_scale = Number(document.getElementById("radius_scale").value);
-            //});
             document.getElementById("sim_steps").addEventListener("change", () => {
-                sim_steps = Number(document.getElementById("sim_steps").value);
+                sim_steps = Number(document.getElementById("sim_steps").value) * (document.getElementById("sim_steps_x3").checked ? 3 : 1);
+            });
+            document.getElementById("sim_steps_x3").addEventListener("click", () => {
+                sim_steps = Number(document.getElementById("sim_steps").value) * (document.getElementById("sim_steps_x3").checked ? 3 : 1);
+            });
+            document.getElementById("reset_sun").addEventListener("click", () => {
+                if (confirm("Der Orts- und Geschwindigkeitsvektor der Sonne wird zurückgesetzt. Sicher, dass die Sonne in der laufenden Simulation verschoben werden soll?")) {
+                    obx[0].pos.x = 0;
+                    obx[0].pos.y = 0;
+                    obx[0].vel.x = 0;
+                    obx[0].vel.y = 0;
+                }
+            });
+            document.getElementById("reset_sim").addEventListener("click", () => {
+                if (confirm("Sicher, dass der Simulationsfortschritt vollständig zurückgesetzt werden soll?")) {
+                    document.getElementById("sim_step_width").value = 1;
+                    document.getElementById("sim_steps").value = 1;
+                    document.getElementById("sim_steps_x3").checked = false;
+                    document.getElementById("display_labels").checked = true;
+                    document.getElementById("use_images").checked = true;
+                    document.getElementById("extended_grid").checked = false;
+
+                    location.reload();
+                }
             });
 
             // coordinate translation
@@ -217,16 +318,22 @@
             // functions
             function drawPlanet(planet) {
                 ctx.fillStyle = planet.c;
-                ctx.font = "16px sans-serif";
-                ctx.beginPath();
-                ctx.arc(cX(planet.pos), cY(planet.pos), sim_scale * planet.r * radius_scale, 0, 2 * Math.PI);
-                ctx.closePath();
-                ctx.fill();
+                if(planet.i != null && zoom < 0.5 && use_images == true) {
+                    img_scale = sim_scale * planet.r * 3; // mathematically correct would be 2, but images are smaller -> 3
+                    ctx.drawImage(document.getElementById(planet.i), cX(planet.pos) - (img_scale / 2), cY(planet.pos) - (img_scale / 2), img_scale, img_scale);
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(cX(planet.pos), cY(planet.pos), sim_scale * planet.r, 0, 2 * Math.PI);
+                    ctx.closePath();
+                    ctx.fill();
+                }
 
                 if(display_labels) {
                     if(planet.is_moon && zoom > 0.25)
                         return;
+                    ctx.strokeStyle = "#000000";
                     ctx.textAlign = "center";
+                    ctx.font = "16px sans-serif";
                     ctx.strokeText(planet.name, cX(planet.pos), cY(planet.pos) - 10);
                     ctx.fillText(planet.name, cX(planet.pos), cY(planet.pos) - 10);
                 }
@@ -235,21 +342,42 @@
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                 // draw coordinate axes
-                ctx.strokeStyle = "#202020";
-                ctx.beginPath();
                 if(extended_grid) {
+                    ctx.strokeStyle = "#666666";
+                    ctx.beginPath();
+                    for(let i = -10; i <= 10; i++) {
+                        ctx.moveTo(cX({x: 1000 * AE}), cY({y: 100 * i * AE}));
+                        ctx.lineTo(cX({x: -1000 * AE}), cY({y: 100 * i * AE}));
+                        ctx.moveTo(cX({x: 100 * i * AE}), cY({y: 1000 * AE}));
+                        ctx.lineTo(cX({x: 100 * i * AE}), cY({y: -1000 * AE}));
+                    }
+                    ctx.stroke();
+                    ctx.strokeStyle = "#444444";
+                    ctx.beginPath();
+                    for(let i = -50; i <= 50; i++) {
+                        ctx.moveTo(cX({x: 500 * AE}), cY({y: 10 * i * AE}));
+                        ctx.lineTo(cX({x: -500 * AE}), cY({y: 10 * i * AE}));
+                        ctx.moveTo(cX({x: 10 * i * AE}), cY({y: 500 * AE}));
+                        ctx.lineTo(cX({x: 10 * i * AE}), cY({y: -500 * AE}));
+                    }
+                    ctx.stroke();
+                    ctx.strokeStyle = "#222222";
+                    ctx.beginPath();
                     for(let i = -50; i <= 50; i++) {
                         ctx.moveTo(cX({x: 50 * AE}), cY({y: i * AE}));
                         ctx.lineTo(cX({x: -50 * AE}), cY({y: i * AE}));
                         ctx.moveTo(cX({x: i * AE}), cY({y: 50 * AE}));
                         ctx.lineTo(cX({x: i * AE}), cY({y: -50 * AE}));
                     }
-                } else {
-                    ctx.moveTo(cX({x: 50 * AE}), cY({y: 0}));
-                    ctx.lineTo(cX({x: -50 * AE}), cY({y: 0}));
-                    ctx.moveTo(cX({x: 0}), cY({y: 50 * AE}));
-                    ctx.lineTo(cX({x: 0}), cY({y: -50 * AE}));
+                    ctx.stroke();
                 }
+
+                ctx.strokeStyle = "#666666";
+                ctx.beginPath();
+                ctx.moveTo(cX({x: 1000 * AE}), cY({y: 0}));
+                ctx.lineTo(cX({x: -1000 * AE}), cY({y: 0}));
+                ctx.moveTo(cX({x: 0}), cY({y: 1000 * AE}));
+                ctx.lineTo(cX({x: 0}), cY({y: -1000 * AE}));
                 ctx.stroke();
 
                 // draw celestial objects
