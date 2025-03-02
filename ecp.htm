@@ -110,22 +110,22 @@
             Simulation des <a href="https://de.wikipedia.org/wiki/N-K%C3%B6rper-Problem">N-Körper-Problems</a>
         </h1>
         <h2>
-            Abschlussprojekt für die Veranstaltung <i>Einführung in die Computerphysik</i>
+            <b>Abschlussprojekt</b> für die Veranstaltung <q><b>Einführung in die Computerphysik</b></q> &#x2022; Bernhard Hagen Birnbaum
         </h2>
         <table>
             <tr>
                 <th>Simulationszeit</th>
                 <th>Simulationsschritte pro Frame</th>
                 <th>Objekt verfolgen</th>
-                <th>Gitter anzeigen</th>
                 <th>Planetenradius</th>
+                <th>Gitter anzeigen</th>
             </tr>
             <tr>
                 <td><span id="simulated_time"></span>d</td>
                 <td><input type="range" min="1" max="90" value="1" id="sim_steps"/></td>
                 <td><select id="follow"><option value="-1">&lt;FreeCam&gt;</option></select></td>
-                <td><input id="extended_grid" type="checkbox"/></td>
                 <td><input type="range" min="1" max="90" value="1" id="radius_scale"/></td>
+                <td><input id="extended_grid" type="checkbox"/></td>
             </tr>
         </table>
         <canvas id="simulation"></canvas>
@@ -267,8 +267,6 @@
                 simulated_time += dt;
 
                 // TODO: bezeichnungen anzeigen
-                // TODO: Parameterisierung: Integrationsschrittweite/Integrationsschritte pro Frame (subsamples), Anzeige für simulierte Zeitdauer
-                // TODO: substepping? https://youtu.be/oPuSvdBGrpE?si=hOC_rFj38g3Vj26y&t=684
             }
 
             // main animation loop
