@@ -8,18 +8,47 @@
             html {
                 background: #202020;
                 color: #dbdbdb;
+                font-family: sans-serif;
             }
             canvas {
                 background: #101010;
                 border: 1px solid #dbdbdb;
             }
+            h1 {
+                margin: 0;
+                font-size: 40px;
+                text-align: center;
+                text-decoration: underline dotted;
+            }
+            h2 {
+                margin: 0;
+                font-size: 10px;
+                text-align: center;
+                font-weight: normal;
+            }
+            table {
+                border-collapse: collapse;
+                margin: auto;
+                margin-top: 10px;
+                margin-bottom: 10px;
+            }
+            table th {
+                min-width: 240px;
+            }
+            table td {
+                text-align: center;
+            }
+            a {
+                color: #dbdbdb;
+                text-decoration: none;
+            }
         </style>
         <script>
             const MARGIN_X = 20;
-            const MARGIN_Y = 120;
+            const MARGIN_Y = 150;
             const G = 6.674e-11; // Gravitationskonstante
             const AE = 149597870700; // Astronomische Einheit in Meter
-            const dt = 360; // Δt (Integrationsschrittweite ~6d pro Sekunde bei 143 Hz, ~1min pro Erdumlauf)
+            const dt = 300; // Δt (Integrationsschrittweite in s, 300 = 5min)
 
             class CelestialBody {
                 constructor(name, m, r, c = "#ffffff", bary = null, a = null, e = null) {
@@ -77,7 +106,28 @@
         </script>
     </head>
     <body>
-        <p><a href="https://de.wikipedia.org/wiki/N-K%C3%B6rper-Problem">N-Körper-Problem</a> FPS: <span id="fps"></span> <select id="follow"><option value="-1">&lt;FreeCam&gt;</option></select> Extended Grid: <input id="extended_grid" type="checkbox"/> Radius Skalierung: <input type="range" min="1" max="90" value="1" id="radius_scale"/></p>
+        <h1>
+            Simulation des <a href="https://de.wikipedia.org/wiki/N-K%C3%B6rper-Problem">N-Körper-Problems</a>
+        </h1>
+        <h2>
+            Abschlussprojekt für die Veranstaltung <i>Einführung in die Computerphysik</i>
+        </h2>
+        <table>
+            <tr>
+                <th>Simulationszeit</th>
+                <th>Simulationsschritte pro Frame</th>
+                <th>Objekt verfolgen</th>
+                <th>Gitter anzeigen</th>
+                <th>Planetenradius</th>
+            </tr>
+            <tr>
+                <td><span id="simulated_time"></span>d</td>
+                <td><input type="range" min="1" max="90" value="1" id="sim_steps"/></td>
+                <td><select id="follow"><option value="-1">&lt;FreeCam&gt;</option></select></td>
+                <td><input id="extended_grid" type="checkbox"/></td>
+                <td><input type="range" min="1" max="90" value="1" id="radius_scale"/></td>
+            </tr>
+        </table>
         <canvas id="simulation"></canvas>
         <script>
             for(let i = 0; i < obx.length; i++) {
@@ -98,6 +148,7 @@
             let follow_object = -1;
             let extended_grid = false;
             let radius_scale = 1;
+            let sim_steps = 1;
 
             function update_canvas() {
                 canvas.width = window.innerWidth - MARGIN_X;
@@ -143,6 +194,9 @@
             document.getElementById("radius_scale").addEventListener("change", () => {
                 radius_scale = Number(document.getElementById("radius_scale").value);
             });
+            document.getElementById("sim_steps").addEventListener("change", () => {
+                sim_steps = Number(document.getElementById("sim_steps").value);
+            });
 
             // coordinate translation
             function cX(p) {
@@ -184,14 +238,10 @@
                 // draw celestial objects
                 for(let i = 0; i < obx.length; i++) {
                     drawPlanet(obx[i]);
-
-                    // adjust panning when following object
-                    if(i == follow_object) {
-                        pan_x = -obx[i].pos.x;
-                        pan_y = obx[i].pos.y;
-                    }
                 }
             }
+            
+            let simulated_time = 0;
             function simulate() {
                 for(let i = 0; i < obx.length; i++) {
                     var acc_x = 0;
@@ -214,7 +264,8 @@
                     obx[i].pos.x += obx[i].vel.x * dt;
                     obx[i].pos.y += obx[i].vel.y * dt;
                 }
-                
+                simulated_time += dt;
+
                 // TODO: bezeichnungen anzeigen
                 // TODO: Parameterisierung: Integrationsschrittweite/Integrationsschritte pro Frame (subsamples), Anzeige für simulierte Zeitdauer
                 // TODO: substepping? https://youtu.be/oPuSvdBGrpE?si=hOC_rFj38g3Vj26y&t=684
@@ -223,10 +274,21 @@
             // main animation loop
             timestamp0 = new Date();
             function update() {
-                simulate();
+                for(let i = 0; i < sim_steps; i++) {
+                    simulate();
+                    for(let j = 0; j < obx.length; j++) {
+                        // adjust panning when following object
+                        if(j == follow_object) {
+                            pan_x = -obx[j].pos.x;
+                            pan_y = obx[j].pos.y;
+                        }
+                    }
+                }
                 draw();
                 timestamp1 = new Date();
-                document.getElementById("fps").innerHTML = Math.round(1000 / (timestamp1 - timestamp0));
+                frametime = (timestamp1 - timestamp0) / 1000;
+                //console.log(frametime);
+                document.getElementById("simulated_time").innerHTML = Math.round(simulated_time / 60 / 60 / 24);
                 timestamp0 = timestamp1;
                 requestAnimationFrame(update);
             }
