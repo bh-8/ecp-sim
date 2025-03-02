@@ -58,6 +58,13 @@
             const G = 6.674e-11; // Gravitationskonstante
             const AE = 149597870700; // Astronomische Einheit in Meter
 
+            const DEFAULT_SUBSAMPLES = 10; // Standardwert für SubSamples
+            const DEFAULT_BOOST = false; // SubSample Multiplier (x3)
+            const DEFAULT_PIN_SUN = true;
+            const DEFAULT_LABELS = true;
+            const DEFAULT_IMAGES = false;
+            const DEFAULT_AEGRID = false;
+
             class CelestialBody {
                 constructor(name, m, r, c, i = null, b = null, a = null, e = null) {
                     this._name = name; // Name
@@ -147,9 +154,9 @@
             <tr>
                 <th width="175px">Objekt fokussieren</th>
                 <th width="300px">Simulationsschritte pro Frame</th>
-                <th width="300px">Simulationszeit</th>
-                <th width="125px">Sonne</th>
+                <th width="320px">Simulationszeit</th>
                 <th width="125px">Simulation</th>
+                <th width="125px">Sonne fixieren</th>
                 <th width="75px">Labels</th>
                 <th width="75px">Bilder</th>
                 <th width="75px">AE-Gitter</th>
@@ -157,28 +164,28 @@
             <tr>
                 <td>
                     <select id="object_focus">
-                        <option value="-1">&lt;FreeCam&gt;</option>
+                        <option value="-1" selected>&lt;FreeCam&gt;</option>
                     </select>
                 </td>
                 <td>
                     <select id="step_resolution"></select>
-                    <input type="range" min="1" max="1000" value="1" id="step_subsamples"/>
+                    <input type="range" min="1" max="1000" id="step_subsamples"/>
                     <input id="step_boost" type="checkbox"/>x3
                 </td>
                 <td>
                     <span id="integrated_time"></span>
                 </td>
                 <td>
-                    <input id="reset_sun" type="button" value="Zurücksetzen"/>
-                </td>
-                <td>
                     <input id="reset_sim" type="button" value="Zurücksetzen"/>
                 </td>
                 <td>
-                    <input id="enable_labels" type="checkbox" checked/>
+                    <input id="enable_pin_sun" type="checkbox"/>
                 </td>
                 <td>
-                    <input id="enable_images" type="checkbox" checked/>
+                    <input id="enable_labels" type="checkbox"/>
+                </td>
+                <td>
+                    <input id="enable_images" type="checkbox"/>
                 </td>
                 <td>
                     <input id="enable_aegrid" type="checkbox"/>
@@ -199,15 +206,21 @@
         <img id="image_pluto" src="icons/1715804_space_pluto_planet.png" hidden/>
         <script>
             for(let i = 0; i < obx.length; i++) {
-                document.getElementById("object_focus").innerHTML += "<option value='" + i + "'>" + (obx[i].is_moon ? "&nbsp;&nbsp;&nbsp;&nbsp;" : "") + obx[i].name + "</option>";
+                document.getElementById("object_focus").innerHTML += "<option value='" + i + "'>" + (obx[i].is_moon ? "&nbsp;&nbsp;&nbsp;&nbsp;" : "> ") + obx[i].name + "</option>";
             }
-            document.getElementById("step_resolution").innerHTML += "<option value='1'>1min</option>";
-            document.getElementById("step_resolution").innerHTML += "<option selected value='3'>3min</option>";
+            document.getElementById("step_resolution").innerHTML += "<option selected value='1'>1min</option>";
+            document.getElementById("step_resolution").innerHTML += "<option value='3'>3min</option>";
             document.getElementById("step_resolution").innerHTML += "<option value='5'>5min</option>";
             document.getElementById("step_resolution").innerHTML += "<option value='10'>10min</option>";
             document.getElementById("step_resolution").innerHTML += "<option value='20'>20min</option>";
             document.getElementById("step_resolution").innerHTML += "<option value='30'>30min</option>";
             document.getElementById("step_resolution").innerHTML += "<option value='60'>60min</option>";
+            document.getElementById("step_subsamples").value = DEFAULT_SUBSAMPLES;
+            document.getElementById("step_boost").checked = DEFAULT_BOOST;
+            document.getElementById("enable_pin_sun").checked = DEFAULT_PIN_SUN;
+            document.getElementById("enable_labels").checked = DEFAULT_LABELS;
+            document.getElementById("enable_images").checked = DEFAULT_IMAGES;
+            document.getElementById("enable_aegrid").checked = DEFAULT_AEGRID;
 
             var canvas = document.getElementById("simulation");
             var ctx = canvas.getContext("2d");
@@ -223,11 +236,12 @@
 
             // simulation state variables
             let object_focus = -1;
-            let step_subsamples = 1;
-            let dt = 3 * 60;
-            let enable_labels = true;
-            let enable_images = true;
-            let enable_aegrid = false;
+            let step_subsamples = DEFAULT_SUBSAMPLES * (DEFAULT_BOOST ? 3 : 1);
+            let dt = 60;
+            let enable_pin_sun = DEFAULT_PIN_SUN;
+            let enable_labels = DEFAULT_LABELS;
+            let enable_images = DEFAULT_IMAGES;
+            let enable_aegrid = DEFAULT_AEGRID;
 
             // canvas controls
             function update_canvas() {
@@ -280,27 +294,15 @@
                 step_subsamples = Number(document.getElementById("step_subsamples").value) * (document.getElementById("step_boost").checked ? 3 : 1);
             });
 
-            document.getElementById("reset_sun").addEventListener("click", () => {
-                if (confirm("Der Orts- und Geschwindigkeitsvektor der Sonne wird zurückgesetzt. Sicher, dass die Sonne in der laufenden Simulation verschoben werden soll?")) {
-                    obx[0].pos.x = 0;
-                    obx[0].pos.y = 0;
-                    obx[0].vel.x = 0;
-                    obx[0].vel.y = 0;
-                }
-            });
             document.getElementById("reset_sim").addEventListener("click", () => {
                 if (confirm("Sicher, dass der Simulationsfortschritt vollständig zurückgesetzt werden soll?")) {
-                    document.getElementById("step_resolution").value = 1;
-                    document.getElementById("step_subsamples").value = 1;
-                    document.getElementById("step_boost").checked = false;
-                    document.getElementById("enable_labels").checked = true;
-                    document.getElementById("enable_images").checked = true;
-                    document.getElementById("enable_aegrid").checked = false;
-
                     location.reload();
                 }
             });
 
+            document.getElementById("enable_pin_sun").addEventListener("click", () => {
+                enable_pin_sun = document.getElementById("enable_pin_sun").checked;
+            });
             document.getElementById("enable_labels").addEventListener("click", () => {
                 enable_labels = document.getElementById("enable_labels").checked;
             });
@@ -323,7 +325,7 @@
             function drawPlanet(planet) {
                 // draw planet image or colored circle
                 ctx.fillStyle = planet.c;
-                if(planet.i != null && zoom < 0.5 && enable_images == true) {
+                if(planet.i != null && zoom < 1 && enable_images == true) {
                     img_scale = scale * planet.r * 3; // mathematically correct would be 2, but images are smaller -> 3
                     ctx.drawImage(document.getElementById(planet.i), cX(planet.pos) - (img_scale / 2), cY(planet.pos) - (img_scale / 2), img_scale, img_scale);
                 } else {
@@ -422,6 +424,12 @@
                     obx[i].pos.x += obx[i].vel.x * dt;
                     obx[i].pos.y += obx[i].vel.y * dt;
                 }
+                if(enable_pin_sun) {
+                    obx[0].pos.x = 0;
+                    obx[0].pos.y = 0;
+                    obx[0].vel.x = 0;
+                    obx[0].vel.y = 0;
+                }
                 integrated_time += dt;
             }
 
@@ -444,10 +452,15 @@
                 fps = 1 / frametime;
                 timestamp0 = timestamp1;
 
-                document.getElementById("integrated_time").innerHTML = Math.round(dt * step_subsamples * fps / 60 / 60 / 24) + "d per second | " + Math.floor(integrated_time / 60 / 60 / 24 / 365.2425) + "y, " + Math.round(integrated_time / 60 / 60 / 24 % 365.2425) + "d total";
+                yps = Math.floor(dt * step_subsamples * fps / 60 / 60 / 24 / 365.2425);
+                dps = Math.round(dt * step_subsamples * fps / 60 / 60 / 24 % 365.2425);
+                yit = Math.floor(integrated_time / 60 / 60 / 24 / 365.2425);
+                dit = Math.round(integrated_time / 60 / 60 / 24 % 365.2425);
+
+                document.getElementById("integrated_time").innerHTML = yps + "y " + dps + "d per second | " + yit + "y " + dit + "d in total";
                 requestAnimationFrame(update);
             }
-            update();
+            window.addEventListener("load", update);
         </script>
     </body>
 </html>
