@@ -39,7 +39,7 @@
                 text-align: center;
             }
             a {
-                color: #dbdbdb;
+                color: #ffffff;
                 text-decoration: none;
             }
         </style>
@@ -75,7 +75,8 @@
                     vel: this.vel,
                     m: this._m,
                     r: this._r,
-                    c: this._c
+                    c: this._c,
+                    is_moon: !(this._bary == null || this._bary.init.name === "Sonne")
                 }; }
             }
 
@@ -117,14 +118,16 @@
                 <th>Simulationszeit</th>
                 <th>Simulationsschritte pro Frame</th>
                 <th>Objekt verfolgen</th>
-                <th>Planetenradius</th>
+                <!--<th>Planetenradius</th>-->
+                <th>Labels</th>
                 <th>Gitter anzeigen</th>
             </tr>
             <tr>
-                <td><span id="simulated_time"></span>d</td>
-                <td><input type="range" min="1" max="90" value="1" id="sim_steps"/></td>
+                <td><span id="simulated_time"></span></td>
+                <td><input type="range" min="1" max="250" value="1" id="sim_steps"/></td>
                 <td><select id="follow"><option value="-1">&lt;FreeCam&gt;</option></select></td>
-                <td><input type="range" min="1" max="90" value="1" id="radius_scale"/></td>
+                <!--<td><input type="range" min="1" max="90" value="1" id="radius_scale"/></td>-->
+                <td><input id="display_labels" type="checkbox" checked/></td>
                 <td><input id="extended_grid" type="checkbox"/></td>
             </tr>
         </table>
@@ -143,12 +146,14 @@
             let is_dragging = false;
             let mouse_x = 0;
             let mouse_y = 0;
-            let zoom = 0.1;
+            let zoom = 1;
             let sim_scale = 1;
-            let follow_object = -1;
-            let extended_grid = false;
-            let radius_scale = 1;
+
             let sim_steps = 1;
+            let follow_object = -1;
+            let radius_scale = 1;
+            let display_labels = true;
+            let extended_grid = false;
 
             function update_canvas() {
                 canvas.width = window.innerWidth - MARGIN_X;
@@ -188,12 +193,15 @@
             document.getElementById("follow").addEventListener("change", () => {
                 follow_object = Number(document.getElementById("follow").value);
             });
+            document.getElementById("display_labels").addEventListener("click", () => {
+                display_labels = document.getElementById("display_labels").checked;
+            });
             document.getElementById("extended_grid").addEventListener("click", () => {
                 extended_grid = document.getElementById("extended_grid").checked;
             });
-            document.getElementById("radius_scale").addEventListener("change", () => {
-                radius_scale = Number(document.getElementById("radius_scale").value);
-            });
+            //document.getElementById("radius_scale").addEventListener("change", () => {
+            //    radius_scale = Number(document.getElementById("radius_scale").value);
+            //});
             document.getElementById("sim_steps").addEventListener("change", () => {
                 sim_steps = Number(document.getElementById("sim_steps").value);
             });
@@ -209,10 +217,19 @@
             // functions
             function drawPlanet(planet) {
                 ctx.fillStyle = planet.c;
+                ctx.font = "16px sans-serif";
                 ctx.beginPath();
                 ctx.arc(cX(planet.pos), cY(planet.pos), sim_scale * planet.r * radius_scale, 0, 2 * Math.PI);
                 ctx.closePath();
                 ctx.fill();
+
+                if(display_labels) {
+                    if(planet.is_moon && zoom > 0.25)
+                        return;
+                    ctx.textAlign = "center";
+                    ctx.strokeText(planet.name, cX(planet.pos), cY(planet.pos) - 10);
+                    ctx.fillText(planet.name, cX(planet.pos), cY(planet.pos) - 10);
+                }
             }
             function draw() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -265,8 +282,6 @@
                     obx[i].pos.y += obx[i].vel.y * dt;
                 }
                 simulated_time += dt;
-
-                // TODO: bezeichnungen anzeigen
             }
 
             // main animation loop
@@ -285,9 +300,10 @@
                 draw();
                 timestamp1 = new Date();
                 frametime = (timestamp1 - timestamp0) / 1000;
-                //console.log(frametime);
-                document.getElementById("simulated_time").innerHTML = Math.round(simulated_time / 60 / 60 / 24);
+                fps = 1 / frametime;
                 timestamp0 = timestamp1;
+
+                document.getElementById("simulated_time").innerHTML = Math.round(dt * sim_steps * fps / 60 / 60 / 24) + "d per second | " + Math.floor(simulated_time / 60 / 60 / 24 / 365.2425) + "y, " + Math.round(simulated_time / 60 / 60 / 24 % 365.2425) + "d total";
                 requestAnimationFrame(update);
             }
             update();
