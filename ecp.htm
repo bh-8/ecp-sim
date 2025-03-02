@@ -51,23 +51,23 @@
             const dt = 180; // Δt (Integrationsschrittweite in s, 180 = 3min)
 
             class CelestialBody {
-                constructor(name, m, r, c = "#ffffff", bary = null, a = null, e = null) {
+                constructor(name, m, r, c = "#ffffff", b = null, a = null, e = null) {
                     this._name = name; // Name
                     this._m = m; // Masse
                     this._r = r; // Radius (nur zur Anzeige)
                     this._c = c; // Farbe (nur zur Anzeige)
-                    this._bary = bary; // Bezugskörper (oder null für Sonne)
+                    this._b = b; // Bezugskörper (oder null für Sonne)
                     this._a = a; // große Halbachse der Umlaufbahn (oder null für Sonne)
                     this._e = e; // Exzentrizität des Bahnkurve (oder null für Sonne)
                 }
                 get m() { return this._m; }
                 get pos() { return {
-                    x: this._bary == null ? 0 : this._bary.pos.x + this._a * (1 + this._e), // initiale Position im Aphel
-                    y: this._bary == null ? 0 : this._bary.pos.y
+                    x: this._b == null ? 0 : this._b.pos.x + this._a * (1 + this._e), // initiale Position im Aphel
+                    y: this._b == null ? 0 : this._b.pos.y
                 }; }
                 get vel() { return {
-                    x: this._bary == null ? 0 : this._bary.vel.x,
-                    y: this._bary == null ? 0 : this._bary.vel.y + Math.sqrt(G * (this._bary.m + this._m) * ((2 / (this._a * (1 + this._e))) - (1 / this._a))) // initiale Geschwindigkeit im Aphel
+                    x: this._b == null ? 0 : this._b.vel.x,
+                    y: this._b == null ? 0 : this._b.vel.y + Math.sqrt(G * (this._b.m + this._m) * ((2 / (this._a * (1 + this._e))) - (1 / this._a))) // initiale Geschwindigkeit im Aphel
                 }; }
                 get init() { return {
                     name: this._name,
@@ -76,7 +76,7 @@
                     m: this._m,
                     r: this._r,
                     c: this._c,
-                    is_moon: !(this._bary == null || this._bary.init.name === "Sonne")
+                    is_moon: !(this._b == null || this._b.init.name === "Sonne")
                 }; }
             }
 
