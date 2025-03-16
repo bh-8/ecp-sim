@@ -106,10 +106,10 @@
             const c_mars     = new CelestialBody(    "Mars", 6.417e+23,  3.389e+6, "#b34f33",    "image_mars",     c_sun,  1.524 * AE,   0.0934);
             const c_phobos   = new CelestialBody(  "Phobos", 1.072e+16,     11100, "#ffffff",            null,    c_mars,     9378000,   0.0151);
             const c_deimos   = new CelestialBody(  "Deimos",   1.8e+15,      6200, "#ffffff",            null,    c_mars,    23459000,  0.00033);
+            const c_vesta    = new CelestialBody(   "Vesta", 2.591e+20,    262700, "#ffffff",            null,     c_sun,  2.362 * AE,    0.089);
+            const c_juno     = new CelestialBody(    "Juno",  2.86e+19,    123298, "#ffffff",            null,     c_sun,  2.669 * AE,    0.256);
             const c_ceres    = new CelestialBody(   "Ceres", 9.394e+20,    473000, "#888888",            null,     c_sun,  2.766 * AE,   0.0785);
             const c_pallas   = new CelestialBody(  "Pallas",  2.14e+20,    272500, "#ffffff",            null,     c_sun,  2.770 * AE,    0.230);
-            const c_juno     = new CelestialBody(    "Juno",  2.86e+19,    123298, "#ffffff",            null,     c_sun,  2.669 * AE,    0.256);
-            const c_vesta    = new CelestialBody(   "Vesta", 2.591e+20,    262700, "#ffffff",            null,     c_sun,  2.362 * AE,    0.089);
             const c_jupiter  = new CelestialBody( "Jupiter", 1.898e+27, 69.911e+6, "#dcb47c", "image_jupiter",     c_sun,  5.204 * AE,   0.0489);
             const c_io       = new CelestialBody(      "Io",   8.9e+22,  1.821e+6, "#8f651b",            null, c_jupiter,   421800000,    0.004);
             const c_europa   = new CelestialBody(  "Europa",   4.8e+22,  1.560e+6, "#394969",            null, c_jupiter,   671100000,    0.009);
@@ -133,21 +133,21 @@
             const c_pluto    = new CelestialBody(   "Pluto",   1.3e+22,  1.188e+6, "#be762c",   "image_pluto",     c_sun, 39.482 * AE,   0.2488);
             const c_eris     = new CelestialBody(    "Eris",  1.67e+22,  1.163e+6, "#697688",            null,     c_sun, 67.740 * AE,    0.436);
             const c_haumea   = new CelestialBody(  "Haumea",  4.01e+21,    816000, "#833c3b",            null,     c_sun, 43.287 * AE,    0.192);
-            const c_gonggong = new CelestialBody("Gonggong",  1.75e+21,    615000, "#be7a74",            null,     c_sun, 67.376 * AE,    0.503);
             const c_makemake = new CelestialBody("Makemake",   3.1e+21,    715000, "#a57a6c",            null,     c_sun,  45.28 * AE,   0.1654);
+            const c_gonggong = new CelestialBody("Gonggong",  1.75e+21,    615000, "#be7a74",            null,     c_sun, 67.376 * AE,    0.503);
             const c_quaoar   = new CelestialBody(  "Quaoar",   1.4e+21,    555000, "#3d445f",            null,     c_sun, 43.472 * AE,    0.041);
-            const c_sedna    = new CelestialBody(   "Sedna",     1e+21,    500000, "#b8a19f",            null,     c_sun, 541.63 * AE,    0.859);
             const c_orcus    = new CelestialBody(   "Orcus",   5.3e+20,    479200, "#666666",            null,     c_sun, 39.238 * AE,    0.225);
+            const c_sedna    = new CelestialBody(   "Sedna",     1e+21,    500000, "#b8a19f",            null,     c_sun, 541.63 * AE,    0.859);
 
             var obx = [
                 c_sun.init,
                 c_mercury.init, c_venus.init, c_earth.init, c_moon.init, c_mars.init, c_phobos.init, c_deimos.init,
-                c_ceres.init, c_pallas.init, c_vesta.init, c_juno.init,
+                c_vesta.init, c_juno.init, c_ceres.init, c_pallas.init, 
                 c_jupiter.init, c_io.init, c_europa.init, c_ganymed.init, c_callisto.init,
                 c_saturn.init, c_tethys.init, c_dione.init, c_rhea.init, c_titan.init, c_iapetus.init,
                 c_uranus.init, c_miranda.init, c_ariel.init, c_umbriel.init, c_titania.init, c_oberon.init,
                 c_neptune.init, c_triton.init, c_nereid.init,
-                c_pluto.init, c_eris.init, c_haumea.init, c_gonggong.init, c_makemake.init, c_quaoar.init, c_sedna.init, c_orcus.init
+                c_pluto.init, c_eris.init, c_haumea.init, c_makemake.init, c_gonggong.init, c_quaoar.init, c_orcus.init, c_sedna.init
             ]
         </script>
     </head>
@@ -452,6 +452,8 @@
                         if(j == object_focus) {
                             pan_x = -obx[j].pos.x;
                             pan_y = obx[j].pos.y;
+                            obj_v = Math.sqrt(obx[j].vel.x * obx[j].vel.x + obx[j].vel.y * obx[j].vel.y);
+                            console.log(obj_v / 1000);
                         }
                     }
                 }
