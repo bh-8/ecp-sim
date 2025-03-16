@@ -59,9 +59,10 @@
             const AE = 149597870700; // Astronomische Einheit in Meter
 
             const DEFAULT_SUBSAMPLES = 10; // Standardwert für SubSamples
-            const DEFAULT_BOOST = false; // SubSample Multiplier (x3)
+            const DEFAULT_BOOST = false; // SubSample Multiplier (x2)
             const DEFAULT_PIN_SUN = true;
             const DEFAULT_LABELS = true;
+            const DEFAULT_LABELS_EXT = true;
             const DEFAULT_IMAGES = false;
             const DEFAULT_AEGRID = false;
 
@@ -93,6 +94,7 @@
                     r: this._r,
                     c: this._c,
                     i: this._i,
+                    is_sun: this._b == null,
                     is_moon: !(this._b == null || this._b.init.name === "Sonne")
                 }; }
             }
@@ -179,7 +181,7 @@
                 <td>
                     <select id="step_resolution"></select>
                     <input type="range" min="1" max="1000" id="step_subsamples"/>
-                    <input id="step_boost" type="checkbox"/>x3
+                    <input id="step_boost" type="checkbox"/>x2
                 </td>
                 <td>
                     <span id="integrated_time"></span>
@@ -192,6 +194,7 @@
                 </td>
                 <td>
                     <input id="enable_labels" type="checkbox"/>
+                    <input id="enable_labels_ext" type="checkbox"/>
                 </td>
                 <td>
                     <input id="enable_images" type="checkbox"/>
@@ -228,6 +231,7 @@
             document.getElementById("step_boost").checked = DEFAULT_BOOST;
             document.getElementById("enable_pin_sun").checked = DEFAULT_PIN_SUN;
             document.getElementById("enable_labels").checked = DEFAULT_LABELS;
+            document.getElementById("enable_labels_ext").checked = DEFAULT_LABELS_EXT;
             document.getElementById("enable_images").checked = DEFAULT_IMAGES;
             document.getElementById("enable_aegrid").checked = DEFAULT_AEGRID;
 
@@ -245,10 +249,11 @@
 
             // simulation state variables
             let object_focus = -1;
-            let step_subsamples = DEFAULT_SUBSAMPLES * (DEFAULT_BOOST ? 3 : 1);
+            let step_subsamples = DEFAULT_SUBSAMPLES * (DEFAULT_BOOST ? 2 : 1);
             let dt = 60;
             let enable_pin_sun = DEFAULT_PIN_SUN;
             let enable_labels = DEFAULT_LABELS;
+            let enable_labels_ext = DEFAULT_LABELS_EXT;
             let enable_images = DEFAULT_IMAGES;
             let enable_aegrid = DEFAULT_AEGRID;
 
@@ -297,10 +302,10 @@
                 dt = Number(document.getElementById("step_resolution").value) * 60;
             });
             document.getElementById("step_subsamples").addEventListener("change", () => {
-                step_subsamples = Number(document.getElementById("step_subsamples").value) * (document.getElementById("step_boost").checked ? 3 : 1);
+                step_subsamples = Number(document.getElementById("step_subsamples").value) * (document.getElementById("step_boost").checked ? 2 : 1);
             });
             document.getElementById("step_boost").addEventListener("click", () => {
-                step_subsamples = Number(document.getElementById("step_subsamples").value) * (document.getElementById("step_boost").checked ? 3 : 1);
+                step_subsamples = Number(document.getElementById("step_subsamples").value) * (document.getElementById("step_boost").checked ? 2 : 1);
             });
 
             document.getElementById("reset_sim").addEventListener("click", () => {
@@ -314,6 +319,9 @@
             });
             document.getElementById("enable_labels").addEventListener("click", () => {
                 enable_labels = document.getElementById("enable_labels").checked;
+            });
+            document.getElementById("enable_labels_ext").addEventListener("click", () => {
+                enable_labels_ext = document.getElementById("enable_labels_ext").checked;
             });
             document.getElementById("enable_images").addEventListener("click", () => {
                 enable_images = document.getElementById("enable_images").checked;
@@ -346,13 +354,26 @@
 
                 // draw planet label
                 if(enable_labels) {
+                    obj_r = Math.round(10 * Math.sqrt(planet.pos.x * planet.pos.x + planet.pos.y * planet.pos.y) / AE) / 10;
                     if(planet.is_moon && zoom > 0.25)
+                        return;
+                    if(!planet.is_sun && zoom > obj_r * 25)
                         return;
                     ctx.strokeStyle = "#000000";
                     ctx.textAlign = "center";
                     ctx.font = "16px sans-serif";
-                    ctx.strokeText(planet.name, cX(planet.pos), cY(planet.pos) - 10);
-                    ctx.fillText(planet.name, cX(planet.pos), cY(planet.pos) - 10);
+                    ctx.strokeText(planet.name, cX(planet.pos), cY(planet.pos) - 8);
+                    ctx.fillText(planet.name, cX(planet.pos), cY(planet.pos) - 8);
+
+                    if(enable_labels_ext && !planet.is_moon) {
+                        obj_v = Math.round(10 * Math.sqrt(planet.vel.x * planet.vel.x + planet.vel.y * planet.vel.y) / 1000) / 10;
+                        ctx.font = "8px sans-serif";
+                        ctx.fillStyle = "#ffffff";
+                        ctx.strokeText("v = " + obj_v + " km/s", cX(planet.pos), cY(planet.pos) + 12);
+                        ctx.fillText("v = " + obj_v + " km/s", cX(planet.pos), cY(planet.pos) + 12);
+                        ctx.strokeText("d = " + obj_r + " AE", cX(planet.pos), cY(planet.pos) + 20);
+                        ctx.fillText("d = " + obj_r + " AE", cX(planet.pos), cY(planet.pos) + 20);
+                    }
                 }
             }
             function draw() {
@@ -452,8 +473,6 @@
                         if(j == object_focus) {
                             pan_x = -obx[j].pos.x;
                             pan_y = obx[j].pos.y;
-                            obj_v = Math.sqrt(obx[j].vel.x * obx[j].vel.x + obx[j].vel.y * obx[j].vel.y);
-                            console.log(obj_v / 1000);
                         }
                     }
                 }
